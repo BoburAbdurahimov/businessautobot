@@ -11,13 +11,5 @@
             "src": "/api/telegram",
             "dest": "/api/telegram.ts"
         }
-    ],
-    "env": {
-        "TELEGRAM_BOT_TOKEN": "@telegram_bot_token",
-        "TELEGRAM_WEBHOOK_SECRET": "@telegram_webhook_secret",
-        "GOOGLE_SHEETS_SPREADSHEET_ID": "@google_sheets_spreadsheet_id",
-        "GOOGLE_SERVICE_ACCOUNT_EMAIL": "@google_service_account_email",
-        "GOOGLE_PRIVATE_KEY": "@google_private_key",
-        "LOW_STOCK_THRESHOLD": "10"
-    }
+    ]
 }
