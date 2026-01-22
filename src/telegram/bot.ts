@@ -90,3 +90,16 @@ export async function sendUnauthorized(chatId: number): Promise<void> {
         'Sizda ushbu botdan foydalanish huquqi yo\'q. Administrator bilan bog\'laning.'
     );
 }
+
+export async function initializeBot(webhook: boolean = false): Promise<TelegramBot> {
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    if (!token) {
+        throw new Error('TELEGRAM_BOT_TOKEN is required');
+    }
+
+    if (webhook) {
+        return initBot(token, { url: 'required_but_unused_in_constructor' });
+    } else {
+        return initBot(token);
+    }
+}

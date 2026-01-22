@@ -198,7 +198,7 @@ curl -X POST "https://api.telegram.org/bot${BOT_TOKEN}/setWebhook" \
 
 Visit this URL (replace placeholders):
 ```
-https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook?url=<YOUR_WEBHOOK_URL>&secret_token=<YOUR_SECRET>
+https://api.telegram.org/bot8166980392:AAFkI1-UyRThz-IZ8eexLYxC65_xFrKfZGU/setWebhook?url=https://businessautobot-vbre-qn5c931pv-boburs-projects-05777480.vercel.app/api/telegram&secret_token=secret123
 ```
 
 Example:
@@ -234,7 +234,7 @@ chmod +x scripts/set-webhook.sh
 ### 1. Check Webhook Status
 
 ```bash
-curl "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getWebhookInfo"
+curl "https://api.telegram.org/bot8166980392:AAFkI1-UyRThz-IZ8eexLYxC65_xFrKfZGU/getWebhookInfo"
 ```
 
 Should return:
