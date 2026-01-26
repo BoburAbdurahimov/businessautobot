@@ -4,25 +4,17 @@ import { UserRole, DiscountType, PaymentMethod } from '../domain/types';
 // ==================== PRODUCT SCHEMAS ====================
 
 export const createProductSchema = z.object({
-    sku: z.string().min(1, 'SKU majburiy'),
     name: z.string().min(1, 'Mahsulot nomi majburiy'),
     defaultPrice: z.number().min(0, 'Narx 0 dan katta bo\'lishi kerak'),
-    stockQty: z.number().int().min(0, 'Qoldiq 0 dan katta bo\'lishi kerak'),
 });
 
 export const updateProductSchema = z.object({
-    sku: z.string().min(1).optional(),
     name: z.string().min(1).optional(),
     defaultPrice: z.number().min(0).optional(),
-    stockQty: z.number().int().min(0).optional(),
     active: z.boolean().optional(),
 });
 
-export const adjustStockSchema = z.object({
-    productId: z.string().min(1),
-    qtyChange: z.number().int(),
-    reason: z.string().min(1, 'Sabab majburiy'),
-});
+
 
 // ==================== CLIENT SCHEMAS ====================
 

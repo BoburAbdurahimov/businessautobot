@@ -59,17 +59,11 @@ export const ru = {
         editProduct: 'Редактировать продукт',
         deleteProduct: "Удалить продукт",
         productName: 'Название продукта',
-        sku: 'SKU',
-        price: 'Цена',
-        stock: 'Остаток',
+
         active: 'Активен',
         inactive: 'Неактивен',
-        lowStock: 'Малый остаток',
-        outOfStock: 'Нет в наличии',
         enterName: 'Введите название',
-        enterSKU: 'Введите SKU',
         enterPrice: 'Введите цену',
-        enterStock: 'Введите остаток',
         confirmDelete: 'Вы хотите удалить этот продукт?',
         deleted: "Продукт удален",
         saved: 'Продукт сохранен',
@@ -160,15 +154,15 @@ export const ru = {
         sortBalance: 'По остатку',
         sortDebt: 'По долгу',
         sortPrice: 'По цене',
-        sortStock: 'По остатку',
+
         sortNewest: 'Новые',
         sortOldest: 'Старые',
         sortDate: 'По дате',
         priceHigh: 'Цена (выс)',
         priceLow: 'Цена (низ)',
-        lowStock: 'Малый остаток',
+
         clientNamePrompt: 'Введите имя клиента (мин 2 символа):',
-        productNamePrompt: 'Введите название или SKU:',
+        productNamePrompt: 'Введите название:',
         orderSearchPrompt: 'ID заказа, имя или дата (YYYY-MM-DD):',
     },
 
@@ -257,7 +251,7 @@ export const ru = {
     reports: {
         title: 'Отчеты',
         salesReport: 'Отчет по продажам',
-        inventoryReport: 'Отчет по остаткам',
+
         clientStatement: 'Выписка по клиенту',
         dateFrom: 'С',
         dateTo: 'По',
@@ -275,7 +269,7 @@ export const ru = {
         requiredField: 'Обязательное поле',
         invalidNumber: 'Неверное число',
         invalidDate: 'Неверная дата',
-        insufficientStock: 'Недостаточно товара',
+
         notFound: 'Не найдено',
         permissionDenied: 'Доступ запрещен',
         systemError: 'Системная ошибка. Попробуйте позже.',

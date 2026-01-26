@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import { initBot, setWebhook } from './telegram/bot';
-import { registerHandlers } from './telegram/handlers';
+import { registerHandlers } from './telegram/dispatcher';
 import { initializeDatabase } from './services/init.service';
 
 // Load environment variables

@@ -25,7 +25,6 @@ function rowToProduct(row: any[]): Product {
         productId: String(row[0] || ''),
         name: String(row[1] || ''),
         defaultPrice: parseFloat(row[2]) || 0,
-        stockQty: parseInt(row[3]) || 0,
         active,
         createdAt: parseDate(row[5]),
         updatedAt: parseDate(row[6]),
@@ -37,7 +36,7 @@ function productToRow(product: Product): any[] {
         product.productId,
         product.name,
         product.defaultPrice,
-        product.stockQty,
+        0, // DEPRECATED: Stock/Qoldiq placeholder
         product.active,
         formatDate(product.createdAt),
         formatDate(product.updatedAt),
@@ -47,14 +46,12 @@ function productToRow(product: Product): any[] {
 export async function createProduct(
     name: string,
     defaultPrice: number,
-    stockQty: number
 ): Promise<Product> {
     const now = new Date();
     const product: Product = {
         productId: generateId('PRD'),
         name,
         defaultPrice,
-        stockQty,
         active: true,
         createdAt: now,
         updatedAt: now,
@@ -103,7 +100,7 @@ export async function searchProducts(query: string, activeOnly: boolean = true):
 
 export async function updateProduct(
     productId: string,
-    updates: Partial<Pick<Product, 'name' | 'defaultPrice' | 'stockQty' | 'active'>>
+    updates: Partial<Pick<Product, 'name' | 'defaultPrice' | 'active'>>
 ): Promise<Product | null> {
     const results = await findRows(SHEET_NAME, (row) => row[0] === productId);
 
@@ -115,7 +112,6 @@ export async function updateProduct(
 
     if (updates.name !== undefined) product.name = updates.name;
     if (updates.defaultPrice !== undefined) product.defaultPrice = updates.defaultPrice;
-    if (updates.stockQty !== undefined) product.stockQty = updates.stockQty;
     if (updates.active !== undefined) product.active = updates.active;
 
     product.updatedAt = new Date();
@@ -124,23 +120,7 @@ export async function updateProduct(
     return product;
 }
 
-export async function adjustStock(
-    productId: string,
-    qtyChange: number
-): Promise<Product | null> {
-    const results = await findRows(SHEET_NAME, (row) => row[0] === productId);
 
-    if (results.length === 0) {
-        return null;
-    }
-
-    const product = rowToProduct(results[0].row);
-    product.stockQty += qtyChange;
-    product.updatedAt = new Date();
-
-    await updateRow(SHEET_NAME, results[0].index, productToRow(product));
-    return product;
-}
 
 export async function deleteProduct(productId: string): Promise<boolean> {
     return (await updateProduct(productId, { active: false })) !== null;

@@ -30,12 +30,7 @@ export const Errors = {
             'PRODUCT_INACTIVE',
             `Mahsulot nofaol: ${name}`
         ),
-    INSUFFICIENT_STOCK: (name: string, available: number) =>
-        new BusinessError(
-            `Insufficient stock for ${name}`,
-            'INSUFFICIENT_STOCK',
-            `Yetarli qoldiq yo'q: ${name} (qoldiq: ${available} dona)`
-        ),
+
 
     // Client errors
     CLIENT_NOT_FOUND: () =>

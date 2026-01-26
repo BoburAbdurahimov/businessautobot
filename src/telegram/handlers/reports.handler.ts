@@ -17,7 +17,8 @@ export async function handleReportsMenu(
 
         const buttons = [
             [{ text: '📈 ' + t('reports.salesReport'), callback_data: 'reports:sales' }],
-            [{ text: '📉 ' + t('reports.inventoryReport'), callback_data: 'reports:inventory' }],
+            [{ text: '🟡 ' + t('orders.openOrdersByClient'), callback_data: 'orders:open_by_client' }, { text: '🟡 ' + t('orders.openOrdersList'), callback_data: 'orders:open_list' }],
+            [{ text: '✅ ' + t('orders.completedOrders'), callback_data: 'orders:completed' }],
             [{ text: '💰 ' + t('orders.totalDebt'), callback_data: 'reports:debt' }],
             ...backButton()
         ];
@@ -51,19 +52,7 @@ export async function handleReportsMenu(
 
         await bot.sendMessage(chatId, text, { parse_mode: 'Markdown' });
 
-    } else if (data === 'reports:inventory') {
-        const { getAllProducts } = await import('../../sheets/products.repository');
-        const products = await getAllProducts(true);
 
-        const lowStock = products.filter(p => p.stockQty < 10);
-        const totalValue = products.reduce((sum, p) => sum + (p.stockQty * p.defaultPrice), 0);
-
-        const text = `📉 *${t('reports.inventoryReport')}*\n\n` +
-            `📦 ${t('products.title')}: ${products.length} ${t('pagination.items')}\n` +
-            `💰 ${t('reports.totalValue')}: ${totalValue.toLocaleString()} so'm\n` +
-            `⚠️ ${t('products.lowStock')} (<10): ${lowStock.length}`;
-
-        await bot.sendMessage(chatId, text, { parse_mode: 'Markdown' });
 
     } else if (data === 'reports:debt') {
         const { getAllOrders } = await import('../../sheets/orders.repository');

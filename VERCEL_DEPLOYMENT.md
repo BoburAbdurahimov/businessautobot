@@ -275,7 +275,8 @@ vercel logs
 
 **1. Check webhook is set**:
 ```bash
-curl "https://api.telegram.org/bot<TOKEN>/getWebhookInfo"
+curl "https://api.telegram.org/bot8166980392:AAFkI1-UyRThz-IZ8eexLYxC65_xFrKfZGU/getWebhookInfo"
+
 ```
 
 **2. Check Vercel logs**:

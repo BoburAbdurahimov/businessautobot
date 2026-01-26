@@ -23,7 +23,7 @@ function rowToPayment(row: any[]): Payment {
         orderId: row[1] || '',
         amount: parseNumber(row[2], 0),
         paymentDate: parseDate(row[3]),
-        method: (row[4] as PaymentMethod) || PaymentMethod.CASH,
+        method: String(row[4]) === PaymentMethod.CARD ? PaymentMethod.CARD : PaymentMethod.CASH,
         createdBy: row[5] || '',
         createdAt: parseDate(row[6]),
     };

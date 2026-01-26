@@ -19,8 +19,7 @@ export enum DiscountType {
 
 export enum PaymentMethod {
     CASH = 'CASH',
-    CARD = 'CARD',
-    TRANSFER = 'TRANSFER'
+    CARD = 'CARD'
 }
 
 // ==================== USER ====================
@@ -43,7 +42,7 @@ export interface Product {
     // sku removed
     name: string;
     defaultPrice: number;
-    stockQty: number;
+
     active: boolean;
     createdAt: Date;
     updatedAt: Date;
@@ -122,16 +121,7 @@ export interface AuditLog {
     timestamp: Date;
 }
 
-// ==================== STOCK ADJUSTMENT ====================
 
-export interface StockAdjustment {
-    adjustmentId: string;
-    productId: string;
-    qtyChange: number; // positive for increase, negative for decrease
-    reason: string;
-    performedBy: string; // userId
-    timestamp: Date;
-}
 
 // ==================== SETTINGS ====================
 

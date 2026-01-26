@@ -1,6 +1,6 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { t } from '../i18n';
-import { Product, Client, Order } from '../domain/types';
+import { Client, Order } from '../domain/types';
 
 export interface InlineButton {
     text: string;
@@ -28,7 +28,6 @@ export function createInlineKeyboard(buttons: InlineButton[][], options?: any): 
 export function mainMenuKeyboard(isAdmin: boolean): TelegramBot.InlineKeyboardMarkup {
     const buttons: InlineButton[][] = [
         [
-            { text: t('menu.products'), callback_data: 'menu:products' },
             { text: t('menu.orders'), callback_data: 'menu:orders' },
         ],
         [
@@ -68,62 +67,13 @@ export function confirmCancelButtons(confirmData: string, cancelData: string = '
     ];
 }
 
-/**
- * Products list keyboard
- */
-export function productsListKeyboard(
-    products: Product[],
-    page: number = 0,
-    pageSize: number = 10,
-    itemCallbackPrefix: string = 'product:view',
-    paginationCallbackPrefix: string = 'products:page',
-    extraButtons: InlineButton[][] = []
-): TelegramBot.InlineKeyboardMarkup {
-    const start = page * pageSize;
-    const end = start + pageSize;
-    const pageProducts = products.slice(start, end);
 
-    const buttons: InlineButton[][] = pageProducts.map(product => [
-        {
-            text: `${product.name} - ${product.stockQty} dona`,
-            callback_data: `${itemCallbackPrefix}:${product.productId}`,
-        },
-    ]);
-
-    // Pagination
-    const paginationRow: InlineButton[] = [];
-    if (page > 0) {
-        paginationRow.push({ text: '◀️ Oldingi', callback_data: `${paginationCallbackPrefix}:${page - 1}` });
-    }
-    if (end < products.length) {
-        paginationRow.push({ text: 'Keyingi ▶️', callback_data: `${paginationCallbackPrefix}:${page + 1}` });
-    }
-    if (paginationRow.length > 0) {
-        buttons.push(paginationRow);
-    }
-
-    // Extra buttons (e.g. "Finish Order")
-    if (extraButtons.length > 0) {
-        buttons.push(...extraButtons);
-    }
-
-    if (itemCallbackPrefix === 'product:view') {
-        // Standard mode
-        buttons.push([{ text: `➕ ${t('products.addProduct')}`, callback_data: 'product:add' }]);
-        buttons.push(...backButton());
-    } else {
-        // Selection mode
-        buttons.push(...backButton('order:cancel')); // Cancel order creation
-    }
-
-    return createInlineKeyboard(buttons);
-}
 
 /**
  * Clients list keyboard
  */
 export function clientsListKeyboard(
-    clients: Client[],
+    clientsWithDebt: { client: Client; totalDebt: number }[],
     page: number = 0,
     pageSize: number = 10,
     itemCallbackPrefix: string = 'client:view',
@@ -131,21 +81,25 @@ export function clientsListKeyboard(
 ): TelegramBot.InlineKeyboardMarkup {
     const start = page * pageSize;
     const end = start + pageSize;
-    const pageClients = clients.slice(start, end);
+    const pageClients = clientsWithDebt.slice(start, end);
 
-    const buttons: InlineButton[][] = pageClients.map(client => [
-        {
-            text: `${client.name}${client.phone ? ' - ' + client.phone : ''}`,
-            callback_data: `${itemCallbackPrefix}:${client.clientId}`,
-        },
-    ]);
+    const buttons: InlineButton[][] = pageClients.map(item => {
+        const { client, totalDebt } = item;
+        const debtText = totalDebt > 0 ? ` (🔴 ${totalDebt.toLocaleString('uz-UZ')})` : '';
+        return [
+            {
+                text: `${client.name}${debtText}`,
+                callback_data: `${itemCallbackPrefix}:${client.clientId}`,
+            },
+        ];
+    });
 
     // Pagination
     const paginationRow: InlineButton[] = [];
     if (page > 0) {
         paginationRow.push({ text: '◀️ Oldingi', callback_data: `${paginationCallbackPrefix}:${page - 1}` });
     }
-    if (end < clients.length) {
+    if (end < clientsWithDebt.length) {
         paginationRow.push({ text: 'Keyingi ▶️', callback_data: `${paginationCallbackPrefix}:${page + 1}` });
     }
     if (paginationRow.length > 0) {

@@ -320,11 +320,10 @@ export async function handleOrdersMenu(
         );
     } else if (data === 'order:new:select_client') {
         const { setConversationState } = await import('../conversationState');
-        const clientsRepo = await import('../../sheets/clients.repository');
-        // Use generic keyboard with specific callbacks
         const { clientsListKeyboard } = await import('../keyboards');
+        const queryService = await import('../../services/query.service');
 
-        const clients = await clientsRepo.getAllClients(true);
+        const clients = await queryService.getAllClientsWithDebt();
 
         if (clients.length === 0) {
             await bot.sendMessage(
@@ -356,10 +355,10 @@ export async function handleOrdersMenu(
         );
     } else if (data.startsWith('order:new:client_list:page:')) {
         const page = parseInt(data.split(':')[4], 10);
-        const clientsRepo = await import('../../sheets/clients.repository');
+        const queryService = await import('../../services/query.service');
         const { clientsListKeyboard } = await import('../keyboards');
 
-        const clients = await clientsRepo.getAllClients(true);
+        const clients = await queryService.getAllClientsWithDebt();
 
         await bot.editMessageReplyMarkup(
             clientsListKeyboard(clients, page, 10, 'order:new:selected', 'order:new:client_list:page'),
@@ -382,79 +381,19 @@ export async function handleOrdersMenu(
         const { setConversationState } = await import('../conversationState');
         setConversationState(Number(user.userId), {
             action: 'ADD_ORDER',
-            step: 'select_product',
+            step: 'select_product', // Now implies manual entry
             data: { clientId, clientName: client.name, items: [] }
         });
-
-        const productsRepo = await import('../../sheets/products.repository');
-        const { productsListKeyboard } = await import('../keyboards');
-        const products = await productsRepo.getAllProducts();
 
         await bot.sendMessage(
             chatId,
             `✅ ${t('orders.client')}: *${client.name}*\n\n` +
-            `📦 1. ${t('orders.selectProduct')}:`,
+            `📦 1. ${t('products.productName')}:`,
             {
                 parse_mode: 'Markdown',
-                reply_markup: productsListKeyboard(products, 0, 10, 'order:product:selected', 'order:product:list:page')
             }
         );
-    } else if (data.startsWith('order:product:list:page:')) {
-        const page = parseInt(data.split(':')[4], 10);
-        const productsRepo = await import('../../sheets/products.repository');
-        const { productsListKeyboard } = await import('../keyboards');
-        const { getConversationState } = await import('../conversationState');
 
-        const products = await productsRepo.getAllProducts();
-        const state = getConversationState(Number(user.userId));
-        const existingItemIds = state?.data?.items?.map((i: any) => i.productId) || [];
-
-        const availableProducts = products.filter(p => !existingItemIds.includes(p.productId));
-        const itemsCount = state?.data?.items?.length || 0;
-
-        const extraButtons = itemsCount > 0 ? [[{ text: `✅ ${t('orders.confirmOrder')} (${itemsCount} ta)`, callback_data: 'order:finish' }]] : [];
-
-        await bot.editMessageReplyMarkup(
-            productsListKeyboard(availableProducts, page, 10, 'order:product:selected', 'order:product:list:page', extraButtons),
-            {
-                chat_id: chatId,
-                message_id: messageId
-            }
-        );
-    } else if (data.startsWith('order:product:selected:')) {
-        const productId = data.split(':')[3];
-        const productsRepo = await import('../../sheets/products.repository');
-        const { setConversationState, getConversationState } = await import('../conversationState');
-
-        const state = getConversationState(Number(user.userId));
-
-        // Check if already selected
-        if (state?.data?.items?.some((i: any) => i.productId === productId)) {
-            await bot.sendMessage(chatId, `❌ ${t('errors.invalidInput')}`);
-            return;
-        }
-
-        const product = await productsRepo.getProductById(productId);
-        if (!product) {
-            await bot.sendMessage(chatId, `❌ ${t('products.notFound')}`);
-            return;
-        }
-
-
-        if (state && state.action === 'ADD_ORDER') {
-            state.step = 'quantity';
-            state.data.currentProduct = product;
-            setConversationState(Number(user.userId), state);
-
-            await bot.sendMessage(
-                chatId,
-                `📦 ${t('common.select')}: *${product.name}*\n` +
-                `💰 ${t('products.price')}: ${formatCurrency(product.defaultPrice)}\n` +
-                `📊 ${t('products.stock')}: ${product.stockQty} ${t('pagination.items')}\n\n` +
-                `${t('orders.enterQty')}:`,
-                { parse_mode: 'Markdown' }
-            );
-        }
     } else if (data === 'order:finish') {
         // Ask for discount
         const buttons = [

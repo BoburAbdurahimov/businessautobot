@@ -68,106 +68,40 @@ export async function handleConversationInput(
                 const address = text.trim();
                 clientData.address = (address === '0' || address === '') ? undefined : address;
 
-                // Create the client
-                await clientsRepo.createClient(
-                    clientData.name,
-                    clientData.phone,
-                    clientData.address
-                );
+                // Create client directly
+                try {
+                    await clientsRepo.createClient(
+                        clientData.name,
+                        clientData.phone,
+                        clientData.address
+                    );
 
-                await bot.sendMessage(
-                    chatId,
-                    `🎉 *${t('clients.saved')}*\n\n` +
-                    `👤 ${t('clients.name')}: ${clientData.name}\n` +
-                    `${clientData.phone ? `📱 ${t('clients.phone')}: ${clientData.phone}\n` : ''}` +
-                    `${clientData.address ? `📍 ${t('clients.address')}: ${clientData.address}` : ''}`,
-                    { parse_mode: 'Markdown' }
-                );
+                    await bot.sendMessage(
+                        chatId,
+                        `🎉 *${t('clients.saved')}*\n\n` +
+                        `👤 ${t('clients.name')}: ${clientData.name}\n` +
+                        `${clientData.phone ? `📱 ${t('clients.phone')}: ${clientData.phone}\n` : ''}` +
+                        `${clientData.address ? `📍 ${t('clients.address')}: ${clientData.address}` : ''}`,
+                        { parse_mode: 'Markdown' }
+                    );
 
-                // Show main menu
-                const { mainMenuKeyboard } = await import('./keyboards');
-                const { isAdmin } = await import('./bot');
-                await bot.sendMessage(chatId, `🏠 ${t('common.mainMenu')}:`, {
-                    reply_markup: mainMenuKeyboard(isAdmin(user))
-                });
+                    // Return to clients menu
+                    const { handleClientsMenu } = await import('./handlers/clients.handler');
+                    await handleClientsMenu(chatId, 'menu:clients', undefined, user);
+
+                } catch (e: any) {
+                    await bot.sendMessage(chatId, `❌ ${t('common.error')}: ${e.message}`);
+                }
 
                 clearConversationState(Number(user.userId));
                 return true;
-            }
-        } else if (state.action === 'ADD_PRODUCT') {
-            // Step-by-step product creation
-            const currentStep = state.step || 'name';
-            const productData = state.data || {};
-
-            if (currentStep === 'name') {
-                // Step 1: Collect Name
-                productData.name = text.trim();
-                state.step = 'price';
-                state.data = productData;
-
-                await bot.sendMessage(
-                    chatId,
-                    `✅ ${t('products.name')}: ${productData.name}\n\n` +
-                    `2️⃣ ${t('products.enterPrice')}:\n\n` +
-                    '💡 15000'
-                );
-                return true;
-            } else if (currentStep === 'price') {
-                // Step 2: Collect Price
-                const price = parseFloat(text.trim());
-                if (isNaN(price) || price <= 0) {
-                    await bot.sendMessage(chatId, `❌ ${t('errors.invalidPrice')}`);
-                    return true;
-                }
-
-                productData.defaultPrice = price;
-                state.step = 'stock';
-                state.data = productData;
-
-                await bot.sendMessage(
-                    chatId,
-                    `✅ ${t('products.price')}: ${price.toLocaleString()} so'm\n\n` +
-                    `3️⃣ ${t('products.enterStock')}:\n\n` +
-                    '💡 100'
-                );
-                return true;
-            } else if (currentStep === 'stock') {
-                // Step 3: Collect Stock and Create Product
-                const stock = parseInt(text.trim(), 10);
-                if (isNaN(stock) || stock < 0) {
-                    await bot.sendMessage(chatId, `❌ ${t('errors.invalidInput')}`);
-                    return true;
-                }
-
-                productData.stockQty = stock;
-
-                // Create the product
-                const productsRepo = await import('../sheets/products.repository');
-                await productsRepo.createProduct(
-                    productData.name,
-                    productData.defaultPrice,
-                    productData.stockQty
-                );
-
-                await bot.sendMessage(
-                    chatId,
-                    `🎉 *${t('products.saved')}*\n\n` +
-                    `📝 ${t('products.name')}: ${productData.name}\n` +
-                    `💰 ${t('products.price')}: ${productData.defaultPrice.toLocaleString()} so'm\n` +
-                    `📊 ${t('products.stock')}: ${productData.stockQty} ${t('pagination.items')}`,
-                    { parse_mode: 'Markdown' }
-                );
-
-                // Show main menu
-                const { mainMenuKeyboard } = await import('./keyboards');
-                const { isAdmin } = await import('./bot');
-                await bot.sendMessage(chatId, `🏠 ${t('common.mainMenu')}:`, {
-                    reply_markup: mainMenuKeyboard(isAdmin(user))
-                });
-
+            } else {
+                // Invalid step protection
+                await bot.sendMessage(chatId, `⚠️ ${t('errors.systemError')} (Invalid step)`);
                 clearConversationState(Number(user.userId));
                 return true;
             }
+
         } else if (state.action === 'ADD_PAYMENT') {
             // Step-by-step payment creation
             const currentStep = state.step || 'amount';
@@ -187,8 +121,7 @@ export async function handleConversationInput(
 
                 const replyMarkup = {
                     keyboard: [
-                        [{ text: t('payments.cash') }, { text: t('payments.card') }],
-                        [{ text: t('payments.transfer') }]
+                        [{ text: t('payments.cash') }, { text: t('payments.card') }]
                     ],
                     resize_keyboard: true,
                     one_time_keyboard: true
@@ -207,12 +140,11 @@ export async function handleConversationInput(
                 const methodInput = text.toLowerCase().trim();
                 let method;
 
-                if (methodInput.includes(t('payments.cash').toLowerCase()) || methodInput.includes('naqd')) method = 'CASH';
-                else if (methodInput.includes(t('payments.card').toLowerCase()) || methodInput.includes('karta')) method = 'CARD';
-                else if (methodInput.includes(t('payments.transfer').toLowerCase()) || methodInput.includes('otkazma')) method = 'TRANSFER';
+                if (methodInput.includes(t('payments.cash').toLowerCase()) || methodInput.includes('naqd') || methodInput.includes('naqt')) method = 'CASH';
+                else if (methodInput.includes(t('payments.card').toLowerCase()) || methodInput.includes('plastik') || methodInput.includes('karta')) method = 'CARD';
 
                 if (!method) {
-                    await bot.sendMessage(chatId, `❌ ${t('errors.invalidInput')}`);
+                    await bot.sendMessage(chatId, `❌ ${t('errors.invalidInput')}\n\nFaqat: Naqt yoki Plastik`);
                     return true;
                 }
 
@@ -222,9 +154,7 @@ export async function handleConversationInput(
                 const { PaymentMethod, OrderStatus } = await import('../domain/types');
 
                 // Map string method to enum
-                const methodEnum =
-                    paymentData.method === 'CASH' ? PaymentMethod.CASH :
-                        paymentData.method === 'CARD' ? PaymentMethod.CARD : PaymentMethod.TRANSFER;
+                const methodEnum = method === 'CASH' ? PaymentMethod.CASH : PaymentMethod.CARD;
 
                 await paymentService.createPayment(
                     paymentData.orderId || '',
@@ -280,31 +210,35 @@ export async function handleConversationInput(
             const currentStep = state.step || 'select_product';
 
             if (currentStep === 'select_product') {
-                // Search for product
-                const productsRepo = await import('../sheets/products.repository');
-                const { productsListKeyboard } = await import('./keyboards');
-
-                const products = await productsRepo.searchProducts(text);
-
-                // Filter out already selected products
-                const existingItemIds = state.data.items?.map((i: any) => i.productId) || [];
-                const availableProducts = products.filter((p: any) => !existingItemIds.includes(p.productId));
-
-                if (availableProducts.length === 0) {
-                    if (products.length > 0) {
-                        await bot.sendMessage(chatId, `⚠️ ${t('errors.invalidInput')}`);
-                    } else {
-                        await bot.sendMessage(chatId, `❌ ${t('products.notFound')}`);
-                    }
+                // Manual Product Name Entry
+                const inputName = text.trim();
+                if (inputName.length < 2) {
+                    await bot.sendMessage(chatId, `❌ ${t('errors.invalidInput')} (min 2 chars)`);
                     return true;
                 }
 
+                state.data.currentProduct = { name: inputName };
+                state.step = 'enter_price';
                 await bot.sendMessage(
                     chatId,
-                    `🔍 ${t('search.results')} (${availableProducts.length}):`,
-                    {
-                        reply_markup: productsListKeyboard(availableProducts, 0, 10, 'order:product:selected', 'order:product:list:page')
-                    }
+                    `📦 ${t('products.productName')}: ${inputName}\n` +
+                    `💰 ${t('products.enterPrice')}:`
+                );
+                return true;
+            } else if (currentStep === 'enter_price') {
+                // Manual Price Entry
+                const price = parseFloat(text.replace(/[^0-9.]/g, ''));
+                if (isNaN(price) || price <= 0) {
+                    await bot.sendMessage(chatId, `❌ ${t('errors.invalidPrice')}`);
+                    return true;
+                }
+
+                state.data.currentProduct.defaultPrice = price;
+                state.step = 'quantity';
+                await bot.sendMessage(
+                    chatId,
+                    `💰 ${t('products.price')}: ${price.toLocaleString()}\n` +
+                    `🔢 ${t('orders.enterQty')}:`
                 );
                 return true;
             } else if (currentStep === 'quantity') {
@@ -317,14 +251,12 @@ export async function handleConversationInput(
                     return true;
                 }
 
-                if (qty > product.stockQty) {
-                    await bot.sendMessage(chatId, `❌ ${t('products.lowStock')} (Max: ${product.stockQty})`);
-                    return true;
-                }
+                // Add item - using fake productId or just handled by service
+                // Just use name as ID or generate random one
+                const randomId = Math.random().toString(36).substring(7);
 
-                // Add item
                 state.data.items.push({
-                    productId: product.productId,
+                    productId: `MANUAL-${randomId}`,
                     productName: product.name,
                     qty: qty,
                     unitPrice: product.defaultPrice,
@@ -334,20 +266,18 @@ export async function handleConversationInput(
                 // Clear current product
                 delete state.data.currentProduct;
 
-                // Go back to select product
+                // Go back to select product loop
                 state.step = 'select_product';
 
                 const itemsCount = state.data.items.length;
                 const totalSum = state.data.items.reduce((acc: number, item: any) => acc + item.subtotal, 0);
 
-                const productsRepo = await import('../sheets/products.repository');
-                const { productsListKeyboard } = await import('./keyboards');
-                const products = await productsRepo.getAllProducts();
+                const { createInlineKeyboard } = await import('./keyboards');
 
-                const existingItemIds = state.data.items?.map((i: any) => i.productId) || [];
-                const availableProducts = products.filter((p: any) => !existingItemIds.includes(p.productId));
-
-                const extraButtons = [[{ text: `✅ ${t('orders.confirmOrder')} (${itemsCount} ta - ${totalSum.toLocaleString()})`, callback_data: 'order:finish' }]];
+                const buttons = [
+                    [{ text: `✅ ${t('orders.confirmOrder')} (${itemsCount} ta - ${totalSum.toLocaleString()})`, callback_data: 'order:finish' }],
+                    [{ text: `❌ ${t('common.cancel')}`, callback_data: 'order:cancel' }]
+                ];
 
                 await bot.sendMessage(
                     chatId,
@@ -358,14 +288,13 @@ export async function handleConversationInput(
                     `💰 ${t('orders.itemsTotal')}: ${(qty * product.defaultPrice).toLocaleString()} so'm\n\n` +
                     `🛒 *${t('orders.items')}:* ${itemsCount}\n` +
                     `💳 *${t('orders.orderTotal')}:* ${totalSum.toLocaleString()} so'm\n\n` +
-                    `👇 ${t('common.select')}:`,
+                    `👇 ${t('products.productName')}:`,
                     {
                         parse_mode: 'Markdown',
-                        reply_markup: productsListKeyboard(availableProducts, 0, 10, 'order:product:selected', 'order:product:list:page', extraButtons)
+                        reply_markup: createInlineKeyboard(buttons)
                     }
                 );
 
-                return true;
                 return true;
             } else if (currentStep === 'discount_manual') {
                 const discountInput = text.trim();
@@ -566,63 +495,8 @@ export async function handleConversationInput(
 
             clearConversationState(Number(user.userId));
             return true;
-        } else if (state.action === 'EDIT_PRODUCT_STOCK') {
-            const { productId } = state.data;
-            const stockQty = parseInt(text.trim(), 10);
 
-            if (isNaN(stockQty) || stockQty < 0) {
-                await bot.sendMessage(chatId, `❌ ${t('errors.invalidInput')}`);
-                return true;
-            }
 
-            const productsRepo = await import('../sheets/products.repository');
-            await productsRepo.updateProduct(productId, { stockQty });
-
-            await bot.sendMessage(chatId, `✅ ${t('common.saved')}`);
-
-            const { handleProductsMenu } = await import('./handlers/products.handler');
-            await handleProductsMenu(chatId, `product:view:${productId}`, undefined, user);
-
-            clearConversationState(Number(user.userId));
-            return true;
-        } else if (state.action === 'EDIT_PRODUCT_NAME') {
-            const { productId } = state.data;
-            const name = text.trim();
-
-            if (!name) {
-                await bot.sendMessage(chatId, `❌ ${t('errors.inputRequired')}`);
-                return true;
-            }
-
-            const productsRepo = await import('../sheets/products.repository');
-            await productsRepo.updateProduct(productId, { name });
-
-            await bot.sendMessage(chatId, `✅ ${t('common.saved')}`);
-
-            const { handleProductsMenu } = await import('./handlers/products.handler');
-            await handleProductsMenu(chatId, `product:view:${productId}`, undefined, user);
-
-            clearConversationState(Number(user.userId));
-            return true;
-        } else if (state.action === 'EDIT_PRODUCT_PRICE') {
-            const { productId } = state.data;
-            const price = parseFloat(text.replace(/[^0-9.]/g, ''));
-
-            if (isNaN(price) || price < 0) {
-                await bot.sendMessage(chatId, `❌ ${t('errors.invalidPrice')}`);
-                return true;
-            }
-
-            const productsRepo = await import('../sheets/products.repository');
-            await productsRepo.updateProduct(productId, { defaultPrice: price });
-
-            await bot.sendMessage(chatId, `✅ ${t('common.saved')}`);
-
-            const { handleProductsMenu } = await import('./handlers/products.handler');
-            await handleProductsMenu(chatId, `product:view:${productId}`, undefined, user);
-
-            clearConversationState(Number(user.userId));
-            return true;
         }
     } catch (error) {
         console.error('[ConversationInput] Error:', error);

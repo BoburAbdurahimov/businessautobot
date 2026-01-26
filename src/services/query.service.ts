@@ -48,6 +48,33 @@ export async function getClientsWithOpenOrders(): Promise<ClientWithOpenOrders[]
     return result;
 }
 
+export interface ClientWithDebt {
+    client: Client;
+    totalDebt: number;
+}
+
+/**
+ * Get all clients with their total debt (for client list)
+ * Efficiently fetches all clients and all open orders once.
+ */
+export async function getAllClientsWithDebt(): Promise<ClientWithDebt[]> {
+    const clients = await clientsRepo.getAllClients(true);
+    const openOrders = await ordersRepo.getOrdersByStatus(OrderStatus.OPEN);
+
+    // Create a map of debts
+    const deptMap = new Map<string, number>();
+    openOrders.forEach(order => {
+        const current = deptMap.get(order.clientId) || 0;
+        deptMap.set(order.clientId, current + order.balanceDue);
+    });
+
+    // Map clients to result
+    return clients.map(client => ({
+        client,
+        totalDebt: deptMap.get(client.clientId) || 0
+    }));
+}
+
 /**
  * Sort clients with open orders
  */
@@ -103,7 +130,7 @@ export function sortOrders(orders: Order[], sortBy: OrderSortType): Order[] {
 // ==================== SEARCH ====================
 
 export type ClientSortType = 'a_z' | 'biggest_debt';
-export type ProductSortType = 'a_z' | 'price_high' | 'price_low' | 'low_stock';
+export type ProductSortType = 'a_z' | 'price_high' | 'price_low';
 
 /**
  * Search clients
@@ -172,9 +199,7 @@ export async function searchProductsWithSort(
         case 'price_low':
             results.sort((a, b) => a.defaultPrice - b.defaultPrice);
             break;
-        case 'low_stock':
-            results.sort((a, b) => a.stockQty - b.stockQty);
-            break;
+
     }
 
     return results;

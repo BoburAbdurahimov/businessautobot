@@ -3,7 +3,11 @@ import { User } from '../../domain/types';
 import { t } from '../../i18n';
 import { clientsListKeyboard, backButton, createInlineKeyboard } from '../keyboards';
 import * as clientsRepo from '../../sheets/clients.repository';
+import * as ordersRepo from '../../sheets/orders.repository';
+import * as queryService from '../../services/query.service';
 import { setConversationState } from '../conversationState';
+import { formatCurrency, formatDate } from '../../utils/helpers';
+import { OrderStatus } from '../../domain/types';
 
 export async function handleClientsMenu(
     chatId: number,
@@ -15,33 +19,41 @@ export async function handleClientsMenu(
     console.log('[ClientsHandler] Received data:', data);
 
     if (data === 'menu:clients') {
-        const clients = await clientsRepo.getAllClients(true);
-        const text = `👥 *Mijozlar*\\n\\nJami: ${clients.length} ta mijoz`;
+        const clientsWithDebt = await queryService.getAllClientsWithDebt();
+        const totalDebt = clientsWithDebt.reduce((sum, item) => sum + item.totalDebt, 0);
+
+        const text = `👥 *Mijozlar*\n\n` +
+            `Jami: ${clientsWithDebt.length} ta mijoz\n` +
+            `💰 Umumiy qarz: ${formatCurrency(totalDebt)}`;
 
         if (messageId) {
             await bot.editMessageText(text, {
                 chat_id: chatId,
                 message_id: messageId,
                 parse_mode: 'Markdown',
-                reply_markup: clientsListKeyboard(clients),
+                reply_markup: clientsListKeyboard(clientsWithDebt),
             });
         } else {
             await bot.sendMessage(chatId, text, {
                 parse_mode: 'Markdown',
-                reply_markup: clientsListKeyboard(clients),
+                reply_markup: clientsListKeyboard(clientsWithDebt),
             });
         }
     } else if (data.startsWith('clients:page:')) {
         const page = parseInt(data.split(':')[2], 10);
-        const clients = await clientsRepo.getAllClients(true);
-        const text = `👥 *Mijozlar*\\n\\nJami: ${clients.length} ta mijoz`;
+        const clientsWithDebt = await queryService.getAllClientsWithDebt();
+        const totalDebt = clientsWithDebt.reduce((sum, item) => sum + item.totalDebt, 0);
+
+        const text = `👥 *Mijozlar*\n\n` +
+            `Jami: ${clientsWithDebt.length} ta mijoz\n` +
+            `💰 Umumiy qarz: ${formatCurrency(totalDebt)}`;
 
         if (messageId) {
             await bot.editMessageText(text, {
                 chat_id: chatId,
                 message_id: messageId,
                 parse_mode: 'Markdown',
-                reply_markup: clientsListKeyboard(clients, page),
+                reply_markup: clientsListKeyboard(clientsWithDebt, page),
             });
         }
     } else if (data.startsWith('client:view:')) {
@@ -53,17 +65,34 @@ export async function handleClientsMenu(
             return;
         }
 
-        let text = `👤 *${client.name}*\\n\\n`;
-        if (client.phone) {
-            text += `📱 Telefon: ${client.phone}\\n`;
-        }
-        if (client.address) {
-            text += `📍 Manzil: ${client.address}\\n`;
+        const orders = await ordersRepo.getOrdersByClient(clientId);
+        const openOrders = orders.filter(o => o.status === OrderStatus.OPEN);
+        const totalDebt = openOrders.reduce((sum, o) => sum + o.balanceDue, 0);
+
+        let text = `👤 *${client.name}*\n` +
+            (client.phone ? `📱 ${client.phone}\n` : '') +
+            (client.address ? `📍 ${client.address}\n` : '') +
+            `\n💰 ${t('orders.totalDebt')}: ${formatCurrency(totalDebt)}\n\n`;
+
+        if (openOrders.length > 0) {
+            text += `📋 *${t('orders.openOrders')} (${openOrders.length}):*\n`;
+            // Sort by oldest first? Or newest? Usually oldest debts are more important. Use date.
+            // openOrders.sort((a, b) => a.orderDate.getTime() - b.orderDate.getTime());
+
+            openOrders.forEach((o, i) => {
+                text += `${i + 1}. 🆔 /${o.orderId.substring(0, 8)}\n` + // Short ID
+                    `📅 ${formatDate(o.orderDate).split('T')[0]}\n` +
+                    `💵 Jami: ${formatCurrency(o.orderTotal)}\n` +
+                    `✅ To'landi: ${formatCurrency(o.totalPaid)}\n` +
+                    `🔴 Qoldi: ${formatCurrency(o.balanceDue)}\n\n`;
+            });
+        } else {
+            text += `✅ ${t('orders.openOrders')} yo'q.`;
         }
 
         const buttons = [
             [
-                { text: '📋 Buyurtmalar', callback_data: `orders:by_client:${clientId}` },
+                { text: `➕ ${t('orders.newOrder')}`, callback_data: `order:new:selected:${clientId}` },
             ],
             [
                 { text: '📝 ' + t('common.edit'), callback_data: `client:edit:${clientId}` },

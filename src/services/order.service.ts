@@ -44,9 +44,7 @@ export async function createOrder(
             throw new Error(`Mahsulot nofaol: ${product.name}`);
         }
 
-        if (product.stockQty < itemInput.qty) {
-            throw new Error(`Yetarli qoldiq yo'q: ${product.name} (qoldiq: ${product.stockQty})`);
-        }
+
 
         const unitPrice = itemInput.unitPrice !== undefined ? itemInput.unitPrice : product.defaultPrice;
         const subtotal = calculateItemSubtotal(itemInput.qty, unitPrice);
@@ -78,7 +76,7 @@ export async function createOrder(
         createdBy
     );
 
-    // Create order items and adjust stock
+    // Create order items
     const savedItems: OrderItem[] = [];
     for (const item of orderItems) {
         const savedItem = await orderItemsRepo.createOrderItem(
@@ -91,8 +89,8 @@ export async function createOrder(
         );
         savedItems.push(savedItem);
 
-        // Decrease stock
-        await productsRepo.adjustStock(item.productId, -item.qty);
+
+
     }
 
     // Audit log
@@ -152,16 +150,13 @@ export async function cancelOrder(orderId: string, cancelledBy: string): Promise
         return null;
     }
 
-    const { order, items } = orderData;
+    const { order } = orderData;
 
     if (order.status === OrderStatus.CANCELLED) {
         throw new Error('Buyurtma allaqachon bekor qilingan');
     }
 
-    // Return stock
-    for (const item of items) {
-        await productsRepo.adjustStock(item.productId, item.qty);
-    }
+
 
     // Update order status
     const updatedOrder = await ordersRepo.updateOrder(orderId, {
@@ -276,20 +271,7 @@ export async function updateOrderItemQty(
 
     if (diff === 0) return order;
 
-    // 3. Check and adjust stock
-    // If diff > 0 (increasing qty), we need to take from stock. (adjustStock -diff)
-    // If diff < 0 (decreasing qty), we return to stock. (adjustStock -diff which is -- = +)
-    // So we always pass -diff to adjustStock.
 
-    if (diff > 0) {
-        const product = await productsRepo.getProductById(item.productId);
-        if (!product) throw new Error('Product not found');
-        if (product.stockQty < diff) {
-            throw new Error(`Insufficient stock. Available: ${product.stockQty}, Needed: ${diff}`);
-        }
-    }
-
-    await productsRepo.adjustStock(item.productId, -diff);
 
     // 4. Update Item
     const newSubtotal = calculateItemSubtotal(newQty, item.unitPrice);
@@ -315,8 +297,7 @@ export async function deleteOrderItem(
     const item = items.find(i => i.orderItemId === orderItemId);
     if (!item) throw new Error('Order item not found');
 
-    // 1. Restore stock
-    await productsRepo.adjustStock(item.productId, item.qty);
+
 
     // 2. Delete item
     await orderItemsRepo.deleteOrderItem(orderItemId);

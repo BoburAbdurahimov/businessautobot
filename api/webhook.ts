@@ -1,7 +1,7 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import dotenv from 'dotenv';
 import { initBot, processUpdate } from '../src/telegram/bot';
-import { registerHandlers } from '../src/telegram/handlers';
+import { registerHandlers } from '../src/telegram/dispatcher';
 import { initializeDatabase } from '../src/services/init.service';
 
 dotenv.config();

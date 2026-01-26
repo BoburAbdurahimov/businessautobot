@@ -1,6 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { getBot, initializeBot } from '../src/telegram/bot';
-import { registerHandlers } from '../src/telegram/handlers';
+import { initializeBot } from '../src/telegram/bot';
+import { registerHandlers, handleMessage, handleCallbackQuery } from '../src/telegram/dispatcher';
 import { initializeDatabase } from '../src/services/init.service';
 
 // Initialize bot on cold start
@@ -58,8 +58,12 @@ export default async function handler(
         }
 
         // Process the update
-        const bot = getBot();
-        await bot.processUpdate(update);
+        // Process the update
+        if (update.message) {
+            await handleMessage(update.message);
+        } else if (update.callback_query) {
+            await handleCallbackQuery(update.callback_query);
+        }
 
         // Respond with 200 OK
         return res.status(200).json({ ok: true });
